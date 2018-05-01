@@ -1,6 +1,7 @@
 package training;
 
 
+import java.sql.CallableStatement;
 import java.sql.Connection;
 import java.sql.PreparedStatement;
 import java.sql.ResultSet;
@@ -136,6 +137,17 @@ public class TestClient
   }
   
   public void A2_5() {}
+  
+  public int A3_1_2_countStaff(String Beruf) throws SQLException {
+	 	    
+		String proc = "{call showMa(?,?)}";
+		CallableStatement cs = con.prepareCall(proc);
+		cs.setString(1, Beruf);    
+		cs.registerOutParameter(2, java.sql.Types.INTEGER);
+		cs.execute();
+
+		return cs.getInt(2);
+  }
   
   public void A4_1_2(String beruf)
     throws SQLException

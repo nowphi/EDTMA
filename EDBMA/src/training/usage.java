@@ -19,7 +19,8 @@ public class usage {
    //   tc.A4_1_2(" ' or 1=1; --");
     //  tc.A4_1_2(" ' or 1=1; UPDATE Mitarbeiter3 SET Ort = 'Irgendwo' WHERE Beruf='Azubi';-- ");
       //tc.A4_3();
-      
+      System.out.println("Ergebnis von Aufgabe A3_1: " + tc.A3_1_2_countStaff("Dipl.-Ing."));
+   
       System.out.println("*********************************");
       
     }
