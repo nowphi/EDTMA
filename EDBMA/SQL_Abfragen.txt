@@ -1,0 +1,141 @@
+-- Einführung
+
+CREATE TABLE Kunde(
+Kunr int primary key,
+Name char(15)
+);
+
+INSERT INTO Kunde VALUES (123, 'Meier')
+
+SELECT * FROM Kunde
+--CREATE TABLE  Mitarbeiter3 (
+--);
+
+CREATE TABLE Mitarbeiter3(
+Mitnr char(3) primary key,
+Name varchar(15),
+Vorname varchar(20) NOT NULL,
+Ort varchar(20),
+Gebdat date NOT NULL,
+Beruf varchar(15),
+Telnr  char(12),
+);
+
+-- Aufgabe 1
+INSERT INTO Mitarbeiter3 SELECT * FROM depotN.dbo.quelleMitarbeiter3
+SELECT * FROM Mitarbeiter3
+
+-- Aufgabe 2
+SELECT * into Projekt3 FROM depotN.dbo.quelleProjekt3
+SELECT * into MiPro3 FROM depotN.dbo.quelleMiPro3
+
+sp_help Projekt3
+
+-- Aufgabe 3
+
+ALTER TABLE Projekt3
+ADD PRIMARY KEY (Pronr); 
+
+ALTER TABLE MiPro3( 
+Mitnr char(3),
+Pronr int,
+ADD PRIMARY KEY (MitNr, Pronr)
+); 
+
+-- Zusammengesetzter Primarykey
+ALTER TABLE MiPro3 ADD PRIMARY KEY (MitNr, Pronr)
+
+-- Aufgabe 4
+
+-- Fremdschlüssel
+ALTER TABLE MiPro3
+ADD CONSTRAINT FK_ProNr
+FOREIGN KEY (ProNr) REFERENCES Projekt3(ProNr); 
+
+-- Aufgabe 5
+
+--Aufgabe 5.a
+select dbo.Mitarbeiter3.Mitnr, dbo.Mitarbeiter3.Name,  dbo.Mitarbeiter3.Vorname from dbo.Mitarbeiter3
+join (select dbo.MiPro3.Mitnr from MiPro3 
+join dbo.Projekt3
+on MiPro3.Pronr = Projekt3.Pronr
+where dbo.Projekt3.Pronr=31 ) AS MitarbeiterProjekte
+on MitarbeiterProjekte.Mitnr = dbo.Mitarbeiter3.Mitnr
+
+-- Aufgabe 5.b
+select dbo.Mitarbeiter3.Mitnr, dbo.Mitarbeiter3.Name,  dbo.Mitarbeiter3.Vorname, Arbeitszeit.Kumuliert from dbo.Mitarbeiter3
+join (select MiPro3.Mitnr, sum(Istanteil) As Kumuliert from MiPro3 
+Group By Mitnr) As Arbeitszeit
+on Arbeitszeit.Mitnr = dbo.Mitarbeiter3.Mitnr
+
+--Aufgabe 5.c
+select dbo.Mitarbeiter3.Mitnr, dbo.Mitarbeiter3.Name,  dbo.Mitarbeiter3.Vorname, Arbeitszeit.Kumuliert from dbo.Mitarbeiter3
+join (select MiPro3.Mitnr, sum(Istanteil) As Kumuliert from MiPro3 
+Group By Mitnr
+having sum(Istanteil) < 0.5) As Arbeitszeit
+on Arbeitszeit.Mitnr = dbo.Mitarbeiter3.Mitnr
+
+-- Aufgabe 6
+
+create or alter procedure show_MiPro @Mitarbeiternummer int
+AS
+Begin
+
+If Exists (SELECT * from MiPro3
+left join Projekt3
+on MiPro3.Pronr = Projekt3.Pronr
+where MiPro3.Mitnr = @Mitarbeiternummer) 
+	Begin
+		SELECT * from MiPro3
+		left join Projekt3
+		on MiPro3.Pronr = Projekt3.Pronr
+		where MiPro3.Mitnr = @Mitarbeiternummer
+	End
+Else
+	Begin
+		Print 'Die Mitnr ' + Cast(@Mitarbeiternummer AS varchar) + ' existiert nicht oder dem Mitarbeiter sind keine Projekte zugeordnet';
+	End
+
+END
+Go
+
+execute show_MiPro 100
+
+-- Aufgabe 7
+-- (Leider wird hier noch die unschöne Exception vom SQL-Server geworfen, die Funktionsweise ist aber nicht beinträchtigt) --
+
+CREATE OR ALTER TRIGGER remove_Leiter
+on Projekt3
+For UPDATE
+as
+
+DECLARE
+@pronr int,
+@leiternr int
+
+begin 
+	select @pronr = pronr, @leiternr=Leiternr from inserted
+
+	If(select count(MiPro3.Mitnr) from Projekt3
+		left join MiPro3
+		on Projekt3.Pronr = MiPro3.Pronr
+		where Projekt3.Pronr = @pronr) = 0 Or @leiternr is not Null
+			Begin
+				Print 'Updated'
+				commit transaction
+			End
+	Else
+		Begin
+			Print 'Noch Mitarbeiter im Projekt vorhanden.'
+			Rollback  tran
+		End
+		Print @leiternr
+	--Print 'Updated' + cast(@pronr AS varchar(10))
+END
+GO
+
+select * from Projekt3
+
+update Projekt3 set Leiternr=NULL where Pronr=32
+
+
